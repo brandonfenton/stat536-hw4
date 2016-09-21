@@ -1,0 +1,123 @@
+---
+title: "Time Series - Homework 3"
+author: "Brandon Fenton and "
+date: "September 21, 2016"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+header-includes: \usepackage{float} \usepackage{bm} \usepackage{amsmath} \usepackage{amssymb} \usepackage{microtype}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+
+library(pander)
+panderOptions('missing', "-")
+```
+
+
+Due on Wednesday, Sept 28 at noon at my office.
+
+You can work alone or in groups of up to three. No bonus. If you are turning in separate assignments, you must use a different site (discussed below).
+
+We will now work with modeling monthly average C02 concentrations. The next bit of code works with the MLO (Mauna Loa) site's results. 
+
+For Mauna Loa, my data set looks like following and I subset it to only pertain to results after 1977 where there were no missing values. You can choose to keep years with missing values or cut those years from your analysis somewhat like I did. 
+```{r }
+# MLO_flask<-read.csv("https://dl.dropboxusercontent.com/u/77307195/MLO_flask.csv",header=T)
+# table(MLO_flask$year) #Great way to see how many observations you have per year
+# MLO_flaskR<-subset(MLO_flask,year>1976)
+# MLOts<-ts(MLO_flaskR$value,start=c(1977,1),freq=12) #Only use this if any missing values coded as NAs or no NAs in vector, otherwise you might need to avoid ts()
+# plot(MLOts)
+```
+
+In this homework, your group will choose a different site and download the data set. There are 96 different locations to choose from at `http://www.esrl.noaa.gov/gmd/dv/data/index.php?parameter_name=Carbon%2BDioxide&frequency=Monthly%2BAverages`. Click the trash can with a green arrow to access a text file that contains the data set. I found it easiest to just copy the rows with data and headers into Excel and use "Data -> Text to columns" to create a more useful 'csv file. But the conversion details are up to you. Make sure your site has records for at least 6 years. 
+
+Report all R code either inline or in an appendix.
+
+##1. Provide a reason for your choice of location. Report any missing observations and the range of years where you are modeling.
+Barrow is a location of personal interest since it's in Alaska, and it's a location with fairly extreme weather so there might be interesting patterns in the CO2 concentrations relative to other locations.  There are no missing years in the data set, so the entire period (May 1971-December 2015) will be used for modeling:
+
+```{r p1, cache=T}
+BRW_flask<-read.table("BRW_flask.txt",header=T)
+# table(BRW_flask$year) #Great way to see how many observations you have per year
+BRWts<-ts(BRW_flask$value,start=c(1977,1),freq=12) 
+
+pander(summary(BRW_flask))
+pander(table(BRW_flask$year))
+```
+
+##2. Make a nice looking time series plot of the CO$_2$ concentrations.
+
+```{r p2, cache=T}
+
+plot(BRWts)
+```
+
+##3. Fit a linear trend plus seasonal means model to the data. Report and discuss the four panel residual diagnostics. Also make a plot of residuals vs time and discuss any potential missed pattern versus time.
+
+```{r p3}
+
+```
+
+##4. Provide tests for the linear and seasonal means components, conditional on each other. Report those results in two sentences including all details.
+
+```{r p4}
+
+```
+
+##5. For your model, plot the original time series and the model fitted values, both versus time on the same plot. You might consider two line types or colors for the two lines. The easiest way to obtain fitted values in R is using fitted(modelname). Discuss how it appears your model does or does not describe the responses using this plot.
+
+```{r p5}
+
+```
+
+##6. Document your R version 
+
+```{r}
+getRversion()
+```
+
+\pagebreak
+
+## R Code Appendix:
+
+Setup:
+```{r sup, ref.label='setup', eval=F, tidy=TRUE}
+
+```
+
+Problem 1:
+```{r a1, ref.label='p1', eval=F}
+
+```
+
+Problem 2:
+```{r a2, ref.label='p2', eval=F}
+
+```
+
+Problem 3:
+```{r a3, ref.label='p3', eval=F}
+
+```
+
+Problem 4:
+```{r a4, ref.label='p4', eval=F}
+
+```
+
+Problem 5:
+```{r a5, ref.label='p5', eval=F}
+
+```
+
+
