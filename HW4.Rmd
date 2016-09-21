@@ -20,7 +20,35 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 
 library(pander)
+library(dplyr)
 panderOptions('missing', "-")
+
+pander_lm <-function (fit, ...)
+{
+  fit.sum <- summary(fit)
+  fit.coef <- fit.sum$coefficients
+  fit.ttable <- matrix(nrow=length(fit.sum$aliased), ncol=4)
+  colnames(fit.ttable) <- colnames(fit.sum$coefficients)
+  rownames(fit.ttable) <- names(fit.sum$aliased)
+
+  notna <- as.vector(which(!fit.sum$aliased))
+  fit.ttable[notna,] <- fit.coef
+  fit.ttable <- as.data.frame(fit.ttable)
+  fit.ttable$`Pr(>|t|)` <- ifelse(fit.ttable$`Pr(>|t|)` < 0.0001, "<0.0001",
+                                     sprintf("%.4f", fit.ttable$`Pr(>|t|)`))
+  
+
+  pander(fit.ttable, ...)
+}
+
+pander_anova <-function (fit, ...)
+{
+  fit.anova <- anova(fit)
+  fit.anova$`Pr(>F)` <- ifelse(fit.anova$`Pr(>F)` < 0.0001, "<0.0001",
+                                  sprintf("%.4f", fit.anova$`Pr(>F)`))
+
+pander(fit.anova, ...)
+}
 ```
 
 
@@ -44,40 +72,63 @@ In this homework, your group will choose a different site and download the data 
 Report all R code either inline or in an appendix.
 
 ##1. Provide a reason for your choice of location. Report any missing observations and the range of years where you are modeling.
-Barrow is a location of personal interest since it's in Alaska, and it's a location with fairly extreme weather so there might be interesting patterns in the CO2 concentrations relative to other locations.  There are no missing years in the data set, so the entire period (May 1971-December 2015) will be used for modeling:
+Barrow is a location of personal interest since it's in Alaska, and it's a location with fairly extreme weather so there might be interesting patterns in the CO2 concentrations relative to other locations.  There are no missing observations in the data set, but 1972 is the first year with observations for each month, so the period from January 1972 to December 2015 will be used for modeling:
 
 ```{r p1, cache=T}
-BRW_flask<-read.table("BRW_flask.txt",header=T)
+BRW_flask<-tbl_df(read.table("BRW_flask.txt",header=T)) 
 # table(BRW_flask$year) #Great way to see how many observations you have per year
-BRWts<-ts(BRW_flask$value,start=c(1977,1),freq=12) 
 
 pander(summary(BRW_flask))
 pander(table(BRW_flask$year))
+
+BRW_flask <- filter(BRW_flask, year>=1972)
+
+BRW_flask <- BRW_flask %>% mutate(month = as.factor(month)) %>%
+  mutate(year = as.vector(time(ts(BRW_flask$value,start=c(1972,1),freq=12))))
+
+
+
+
 ```
 
 ##2. Make a nice looking time series plot of the CO$_2$ concentrations.
 
 ```{r p2, cache=T}
 
-plot(BRWts)
+plot(value ~ year, data=BRW_flask, type="l", ylab="CO2 (micromol/mol)")
 ```
 
 ##3. Fit a linear trend plus seasonal means model to the data. Report and discuss the four panel residual diagnostics. Also make a plot of residuals vs time and discuss any potential missed pattern versus time.
 
 ```{r p3}
+ltsm_lm <- lm(value ~ year + month, data=BRW_flask)
+```
 
+```{r p3a}
+par(mfrow=c(2,2))
+plot(ltsm_lm)
+par(mfrow=c(1,1))
+```
+
+```{r p3b}
+plot(resid(ltsm_lm) ~ BRW_flask$year )
 ```
 
 ##4. Provide tests for the linear and seasonal means components, conditional on each other. Report those results in two sentences including all details.
 
 ```{r p4}
+pander_anova(ltsm_lm)
 
 ```
 
 ##5. For your model, plot the original time series and the model fitted values, both versus time on the same plot. You might consider two line types or colors for the two lines. The easiest way to obtain fitted values in R is using fitted(modelname). Discuss how it appears your model does or does not describe the responses using this plot.
 
 ```{r p5}
-
+colors <- c("#FF0000DD", "#000000DD")
+plot(value ~ year, data=BRW_flask, type="l", lty=1, lwd=2, col=colors[1], ylab="CO2 (micromol/mol)")
+lines(fitted(ltsm_lm) ~ BRW_flask$year, lty=2, col=colors[2], lwd=2)
+legend(x=min(BRW_flask$year), y=max(BRW_flask$value), lty=c(1,3), lwd=c(2,2), col=colors, legend=c("Original","Fitted"),
+       bty = "n")
 ```
 
 ##6. Document your R version 
@@ -107,6 +158,14 @@ Problem 2:
 
 Problem 3:
 ```{r a3, ref.label='p3', eval=F}
+
+```
+
+```{r a3a, ref.label='p3a', eval=F}
+
+```
+
+```{r a3b, ref.label='p3b', eval=F}
 
 ```
 
