@@ -1,6 +1,6 @@
 ---
 title: "Time Series - Homework 3"
-author: "Brandon Fenton and "
+author: "Brandon Fenton and Allison Theobold"
 date: "September 21, 2016"
 output:
   pdf_document:
@@ -21,6 +21,8 @@ knitr::opts_chunk$set(warning = FALSE)
 
 library(pander)
 library(dplyr)
+library(effects)
+
 panderOptions('missing', "-")
 
 pander_lm <-function (fit, ...)
@@ -52,33 +54,15 @@ pander(fit.anova, ...)
 ```
 
 
-Due on Wednesday, Sept 28 at noon at my office.
-
-You can work alone or in groups of up to three. No bonus. If you are turning in separate assignments, you must use a different site (discussed below).
-
-We will now work with modeling monthly average C02 concentrations. The next bit of code works with the MLO (Mauna Loa) site's results. 
-
-For Mauna Loa, my data set looks like following and I subset it to only pertain to results after 1977 where there were no missing values. You can choose to keep years with missing values or cut those years from your analysis somewhat like I did. 
-```{r }
-# MLO_flask<-read.csv("https://dl.dropboxusercontent.com/u/77307195/MLO_flask.csv",header=T)
-# table(MLO_flask$year) #Great way to see how many observations you have per year
-# MLO_flaskR<-subset(MLO_flask,year>1976)
-# MLOts<-ts(MLO_flaskR$value,start=c(1977,1),freq=12) #Only use this if any missing values coded as NAs or no NAs in vector, otherwise you might need to avoid ts()
-# plot(MLOts)
-```
-
-In this homework, your group will choose a different site and download the data set. There are 96 different locations to choose from at `http://www.esrl.noaa.gov/gmd/dv/data/index.php?parameter_name=Carbon%2BDioxide&frequency=Monthly%2BAverages`. Click the trash can with a green arrow to access a text file that contains the data set. I found it easiest to just copy the rows with data and headers into Excel and use "Data -> Text to columns" to create a more useful 'csv file. But the conversion details are up to you. Make sure your site has records for at least 6 years. 
-
-Report all R code either inline or in an appendix.
-
 ##1. Provide a reason for your choice of location. Report any missing observations and the range of years where you are modeling.
 Barrow is a location of personal interest since it's in Alaska, and it's a location with fairly extreme weather so there might be interesting patterns in the CO2 concentrations relative to other locations.  There are no missing observations in the data set, but 1972 is the first year with observations for each month, so the period from January 1972 to December 2015 will be used for modeling:
 
 ```{r p1, cache=T}
 BRW_flask<-tbl_df(read.table("BRW_flask.txt",header=T)) 
-# table(BRW_flask$year) #Great way to see how many observations you have per year
 
 pander(summary(BRW_flask))
+
+# There's got to be a better way!
 pander(table(BRW_flask$year))
 
 BRW_flask <- filter(BRW_flask, year>=1972)
@@ -95,16 +79,29 @@ BRW_flask <- BRW_flask %>% mutate(month = as.factor(month)) %>%
 
 ```{r p2, cache=T}
 
-plot(value ~ year, data=BRW_flask, type="l", ylab="CO2 (micromol/mol)")
+plot(value ~ year, data=BRW_flask, type="l", ylab=expression(CO[2] (micromol/mol)))
 ```
 
 ##3. Fit a linear trend plus seasonal means model to the data. Report and discuss the four panel residual diagnostics. Also make a plot of residuals vs time and discuss any potential missed pattern versus time.
 
 ```{r p3}
-ltsm_lm <- lm(value ~ year + month, data=BRW_flask)
+# Just year and month first to determine seasons
+ym_lm <- lm(value ~ year + month, data=BRW_flask)
+
+plot(allEffects(ym_lm))
+
 ```
 
-```{r p3a}
+```{r p3aa}
+
+# Dec-Jan and then Jun-Nov?
+BRW_flask <- BRW_flask %>% mutate(season = as.factor(ifelse(BRW_flask$month %in% c(12,1:5), 1, 2)))
+
+ltsm_lm <- lm(value ~ year + season, data=BRW_flask)
+plot(allEffects(ltsm_lm))
+```
+
+```{r p3a, fig.height=6, fig.width=6}
 par(mfrow=c(2,2))
 plot(ltsm_lm)
 par(mfrow=c(1,1))
@@ -125,7 +122,7 @@ pander_anova(ltsm_lm)
 
 ```{r p5}
 colors <- c("#FF0000DD", "#000000DD")
-plot(value ~ year, data=BRW_flask, type="l", lty=1, lwd=2, col=colors[1], ylab="CO2 (micromol/mol)")
+plot(value ~ year, data=BRW_flask, type="l", lty=1, lwd=2, col=colors[1], ylab=expression(CO[2] (micromol/mol)))
 lines(fitted(ltsm_lm) ~ BRW_flask$year, lty=2, col=colors[2], lwd=2)
 legend(x=min(BRW_flask$year), y=max(BRW_flask$value), lty=c(1,3), lwd=c(2,2), col=colors, legend=c("Original","Fitted"),
        bty = "n")
