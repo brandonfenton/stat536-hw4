@@ -75,9 +75,6 @@ BRW_flask <- BRW_flask %>% mutate(month = as.factor(month)) %>%
 
 ```
 
-Brandon, you get to describe why you picked this site! The table above displays the number of observations per year from 1971 to 2015. It appears 1971 is the only year with ``missing" observations, so the data being considered begins in January of 1972. 
-
-
 
 ##2. Make a nice looking time series plot of the CO$_2$ concentrations.
 
