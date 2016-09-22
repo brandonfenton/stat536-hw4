@@ -70,10 +70,11 @@ BRW_flask <- filter(BRW_flask, year>=1972)
 BRW_flask <- BRW_flask %>% mutate(month = as.factor(month)) %>%
   mutate(year = as.vector(time(ts(BRW_flask$value,start=c(1972,1),freq=12))))
 
-
-
-
 ```
+
+Brandon, you get to describe why you picked this site! The table above displays the number of observations per year from 1971 to 2015. It appears 1971 is the only year with ``missing" observations, so the data being considered begins in January of 1972. 
+
+
 
 ##2. Make a nice looking time series plot of the CO$_2$ concentrations.
 
@@ -85,12 +86,25 @@ plot(value ~ year, data=BRW_flask, type="l", ylab=expression(CO[2] (micromol/mol
 ##3. Fit a linear trend plus seasonal means model to the data. Report and discuss the four panel residual diagnostics. Also make a plot of residuals vs time and discuss any potential missed pattern versus time.
 
 ```{r p3}
+par(mfrow = c(2, 2))
 # Just year and month first to determine seasons
-ym_lm <- lm(value ~ year + month, data=BRW_flask)
+ym_lm <- lm(value ~ year + month, data = BRW_flask)
 
-plot(allEffects(ym_lm))
+# plot(allEffects(ym_lm))
+# Not the plot I think he wants
+
+plot(ym_lm)
+# The plot I think he wants
 
 ```
+
+ In the above diagnostic plots, we see very clear indications of assumption violations. In the residual verses fitted, we see evidence of a quadratic relationship that was unaccounted for. In the location-scale plot, the curvature appears more quartic, leading us to believe a polynomial of degree greater than 2 should possibly be fit. We see some shorter tails in the Normal Q-Q plot of the residuals, but nothing too severe to violate the assumption of normality of the residuals. Lastly, we see that there are no high leverage points in the data set. 
+ 
+```{r, p3aaa}
+plot(residuals(ym_lm) ~ year, data = BRW_flask)
+``` 
+
+In the above plot of the residuals from the linear model, with only year and month as explanatory variables verses year, shows a similar trend to that seen in the scale-location diagnostic plot. We see evidence of a potential quartic trend as discussed previously. 
 
 ```{r p3aa}
 
