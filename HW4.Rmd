@@ -131,37 +131,47 @@ ggplot(ym_lm, aes(year, .resid)) + geom_point() + stat_smooth(method="loess") + 
 #plot(residuals(ym_lm) ~ year, data = BRW_flask)
 ``` 
 
-In the above plot of the residuals from the linear model, with only year and month as explanatory variables versus year, shows a similar trend to that seen in the scale-location diagnostic plot. We see evidence of a potential quartic trend as discussed previously. 
+In the above plot of the residuals from the linear model, with only year and month as explanatory variables versus year, show a similar trend to that seen in the scale-location diagnostic plot. We see evidence of a potential quartic trend as discussed previously. 
+
+##4. Provide tests for the linear and seasonal means components, conditional on each other. Report those results in two sentences including all details.
 
 ```{r p3aa}
 
-# Dec-Jan and then Jun-Nov?
+# Dec-Jan and then Jun-Nov? Don't need!
 BRW_flask <- BRW_flask %>% mutate(season = as.factor(ifelse(BRW_flask$month %in% c(12,1:5), 1, 2)))
 
-ltsm_lm <- lm(value ~ year + season, data=BRW_flask)
-plot(allEffects(ltsm_lm))
+#ltsm_lm <- lm(value ~ year + season, data=BRW_flask)
+# plot(allEffects(ltsm_lm))
 ```
 
-```{r p3a, fig.height=6, fig.width=6}
-par(mfrow=c(2,2))
-plot(ltsm_lm)
-par(mfrow=c(1,1))
+The tests for linear and seasonal means components are shown in the table below. We see very strong evidence of a linear relationship between value and year (F-stat = 14732 $\sim F_{1, 525}$, p-value $<$ 0.0001), after accounting for season. Similarly, there is very strong evidence of a difference in mean value by season (F-stat = 645.4 $\sim F_{1, 525}$, p-value $<$ 0.0001), after accounting for the linear relationship between value and year. 
+
+```{r p4}
+pander_anova(ym_lm)
+
 ```
+
+These results are based on the assumptions of the linear model being satisfied, which we see below, that is not the case. In the diagnostic plots below, we a similar quartic trend in the residuals verses fitted values, indicating that the model failed to capture a higher order relationship between the $CO_2$ value and the year.  
+
+```{r p3a, fig.height=6, fig.width=6}
+autoplot(ltsm_lm, data = BRW_flask, label.size = 3, which = 1:4, ncol = 2)
+```
+
 
 ```{r p3b, fig.cap="Residuals vs. time in models without and with quadratic terms"}
 
 ltsm_lmq <- lm(value ~ poly(year, 2) + month, data = BRW_flask)
 par(mfrow=c(1,2))
-plot(residuals(ltsm_lm) ~ year, data = BRW_flask)
-plot(residuals(ltsm_lmq) ~ year, data = BRW_flask)
+
+ggplot(ym_lm, aes(year, .resid)) + geom_point() + stat_smooth(method="loess") + xlab("Year") + ylab("Residuals") + ggtitle("Diagnostic for Linear Model") + theme_bw()
+
+ggplot(ltsm_lmq, aes(year, .resid)) + geom_point() + stat_smooth(method="loess") + xlab("Year") + ylab("Residuals") + ggtitle("Diagnostic for Quadratic Model") + theme_bw()
+
+
+#plot(residuals(ltsm_lm) ~ year, data = BRW_flask)
+#plot(residuals(ltsm_lmq) ~ year, data = BRW_flask)
+
 par(mfrow=c(1,1))
-
-```
-
-##4. Provide tests for the linear and seasonal means components, conditional on each other. Report those results in two sentences including all details.
-
-```{r p4}
-pander_anova(ltsm_lm)
 
 ```
 
@@ -183,6 +193,8 @@ lines(fitted(ltsm_lmq) ~ BRW_flask$year, lty=1, col=colors[2], lwd=2)
 legend(x=min(BRW_flask$year), y=max(BRW_flask$value), lty=c(1,1), lwd=c(2,2), col=colors, legend=c("Original","Fitted (quadratic)"),
        bty = "n")
 ```
+
+In the plot above, we see that the model with only a linear predictor for year and a seasonal adjustment does not capture the troughs of these data. The fitted values from the model do capture the peaks of these data quite well, only overestimating a bit in the years near 1995. 
 
 ##6. Document your R version 
 
