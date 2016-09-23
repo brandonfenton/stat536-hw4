@@ -1,5 +1,5 @@
 ---
-title: "Time Series - Homework 3"
+title: "Time Series - Homework 4"
 author: "Brandon Fenton and Allison Theobold"
 date: "September 21, 2016"
 output:
@@ -19,9 +19,13 @@ header-includes: \usepackage{float} \usepackage{bm} \usepackage{amsmath} \usepac
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 
+library(grid)
+library(gridExtra)
 library(pander)
 library(dplyr)
+library(ggplot2)
 library(effects)
+library(ggfortify)
 
 panderOptions('missing', "-")
 
@@ -51,12 +55,34 @@ pander_anova <-function (fit, ...)
 
 pander(fit.anova, ...)
 }
+
+diagPlot <-function(model){
+    p1 <- {ggplot(model, aes(.fitted, .resid)) + geom_point() + 
+      stat_smooth(method="loess") + geom_hline(yintercept=0, col="red", linetype="dashed") + xlab("Fitted Values") + ylab("Residuals") + 
+      ggtitle("Residual vs Fitted Plot") + theme_bw()}
+    
+    p2 <- {ggplot(model, aes(qqnorm(.stdresid)[[1]], .stdresid)) +
+      geom_point(na.rm = TRUE) + geom_abline() +
+      xlab("Theoretical Quantiles") + ylab("Standardized Residuals") +
+      ggtitle("Normal Q-Q") + theme_bw()} 
+
+    p3 <- {ggplot(model, aes(.fitted, sqrt(abs(.stdresid)))) +
+      geom_point(na.rm=TRUE) + stat_smooth(method="loess", na.rm = TRUE) + 
+      xlab("Fitted Value") + ylab(expression(sqrt("|Standardized Residuals|"))) + ggtitle("Scale-Location") + theme_bw()}
+    
+    p4 <- {ggplot(model, aes(seq_along(.cooksd), .cooksd)) +
+      geom_bar(stat="identity", position="identity") + 
+      xlab("Observation Number") + ylab("Cook's Distance") +
+      ggtitle("Cook's Distance") + theme_bw()}
+    
+    return(list(p1, p3, p4))
+}
 ```
 
 
 ##1. Provide a reason for your choice of location. Report any missing observations and the range of years where you are modeling.
     
-Barrow is a location of personal interest since it's in Alaska, and it's a location with fairly extreme weather so there might be interesting patterns in the CO2 concentrations relative to other locations.  There are no missing observations in the data set, but 1972 is the first year with observations for each month, so the period from January 1972 to December 2015 will be used for modeling:
+Barrow is a location of personal interest since it's in Alaska, and it's a location with fairly extreme weather so there might be interesting patterns in the CO2 concentrations relative to other locations.  There are no missing observations in the data set, but 1972 is the first year with observations for each month, so the period from January 1972 to December 2015 will be used for modeling.
 
 ```{r p1, cache=T}
 BRW_flask<-tbl_df(read.table("BRW_flask.txt",header=T)) 
@@ -92,18 +118,17 @@ ym_lm <- lm(value ~ year + month, data = BRW_flask)
 
 # plot(allEffects(ym_lm))
 
-par(mfrow = c(2, 2))
-plot(ym_lm)
-par(mfrow = c(1,1))
-
+autoplot(ym_lm, data = BRW_flask, label.size = 3, which = 1:4, ncol = 2)
 ```
 
  In the above diagnostic plots, we see very clear indications of assumption violations. In the residual versus fitted, we see evidence of a quadratic relationship that was unaccounted for. In the location-scale plot, the curvature appears more quartic, leading us to believe a polynomial of degree greater than 2 should possibly be fit. We see some shorter tails in the Normal Q-Q plot of the residuals, but nothing too severe to violate the assumption of normality of the residuals. Lastly, we see that there are no high leverage points in the data set. 
  
 ```{r, p3aaa}
+par(mfrow = c(1,1))
 
-plot(residuals(ym_lm) ~ year, data = BRW_flask)
+ggplot(ym_lm, aes(year, .resid)) + geom_point() + stat_smooth(method="loess") + xlab("Year") + ylab("Residuals") + ggtitle("Residual vs Year") + theme_bw()
 
+#plot(residuals(ym_lm) ~ year, data = BRW_flask)
 ``` 
 
 In the above plot of the residuals from the linear model, with only year and month as explanatory variables versus year, shows a similar trend to that seen in the scale-location diagnostic plot. We see evidence of a potential quartic trend as discussed previously. 
