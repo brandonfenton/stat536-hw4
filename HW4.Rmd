@@ -151,12 +151,7 @@ pander_anova(ym_lm)
 
 ```
 
-These results are based on the assumptions of the linear model being satisfied, which we see below, that is not the case. In the diagnostic plots below, we a similar quartic trend in the residuals verses fitted values, indicating that the model failed to capture a higher order relationship between the $CO_2$ value and the year.  
-
-```{r p3a, fig.height=6, fig.width=6}
-autoplot(ltsm_lm, data = BRW_flask, label.size = 3, which = 1:4, ncol = 2)
-```
-
+These results are based on the assumptions of the linear model being satisfied, which we see below, that is not the case. In the diagnostic plots in 4, we saw severe violations of the linearity assumption.   
 
 ```{r p3b, fig.cap="Residuals vs. time in models without and with quadratic terms"}
 
