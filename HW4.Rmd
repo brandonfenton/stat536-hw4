@@ -85,7 +85,7 @@ diagPlot <-function(model){
 Barrow is a location of personal interest since it's in Alaska, and it's a location with fairly extreme weather so there might be interesting patterns in the CO2 concentrations relative to other locations.  There are no missing observations in the data set, but 1972 is the first year with observations for each month, so the period from January 1972 to December 2015 will be used for modeling.
 
 ```{r p1, cache=T}
-BRW_flask<-tbl_df(read.table("BRW_flask.txt",header=T)) 
+BRW_flask<-tbl_df(read.table("BRW_flask.txt", header=T)) 
 
 pander(summary(BRW_flask), caption="Summary statistics for Barrow data")
 
@@ -109,9 +109,10 @@ BRW_flask <- BRW_flask %>% mutate(month = as.factor(month)) %>%
 plot(value ~ year, data=BRW_flask, type="l", ylab=expression(paste(CO[2], "(",mu,"mol/mol)")))
 ```
 
+
 ##3. Fit a linear trend plus seasonal means model to the data. Report and discuss the four panel residual diagnostics. Also make a plot of residuals vs time and discuss any potential missed pattern versus time.
 
-```{r p3, fig.height=6, fig.width=6}
+```{r p3a, fig.height=6, fig.width=6}
 
 # Just year and month first to determine seasons
 ym_lm <- lm(value ~ year + month, data = BRW_flask)
@@ -123,7 +124,7 @@ autoplot(ym_lm, data = BRW_flask, label.size = 3, which = 1:4, ncol = 2)
 
  In the above diagnostic plots, we see very clear indications of assumption violations. In the residual versus fitted, we see evidence of a quadratic relationship that was unaccounted for. In the location-scale plot, the curvature appears more quartic, leading us to believe a polynomial of degree greater than 2 should possibly be fit. We see some shorter tails in the Normal Q-Q plot of the residuals, but nothing too severe to violate the assumption of normality of the residuals. Lastly, we see that there are no high leverage points in the data set. 
  
-```{r, p3aaa}
+```{r, p3b}
 par(mfrow = c(1,1))
 
 ggplot(ym_lm, aes(year, .resid)) + geom_point() + stat_smooth(method="loess") + xlab("Year") + ylab("Residuals") + ggtitle("Residual vs Year") + theme_bw()
@@ -135,7 +136,7 @@ In the above plot of the residuals from the linear model, with only year and mon
 
 ##4. Provide tests for the linear and seasonal means components, conditional on each other. Report those results in two sentences including all details.
 
-```{r p3aa}
+```{r p4a}
 
 # Dec-Jan and then Jun-Nov? Don't need!
 BRW_flask <- BRW_flask %>% mutate(season = as.factor(ifelse(BRW_flask$month %in% c(12,1:5), 1, 2)))
@@ -144,52 +145,55 @@ BRW_flask <- BRW_flask %>% mutate(season = as.factor(ifelse(BRW_flask$month %in%
 # plot(allEffects(ltsm_lm))
 ```
 
-The tests for linear and seasonal means components are shown in the table below. We see very strong evidence of a linear relationship between value and year (F-stat = 14732 $\sim F_{1, 525}$, p-value $<$ 0.0001), after accounting for season. Similarly, there is very strong evidence of a difference in mean value by season (F-stat = 645.4 $\sim F_{1, 525}$, p-value $<$ 0.0001), after accounting for the linear relationship between value and year. 
+The tests for linear and monthly (seasonal) means components are shown in the table below. We see very strong evidence of a linear relationship between value and year (F-stat = 50282 $\sim F_{1, 525}$, p-value $<$ 0.0001), after accounting for season. Similarly, there is very strong evidence of a difference in mean value by month (F-stat = 316.3 $\sim F_{11, 525}$, p-value $<$ 0.0001), after accounting for the linear relationship between value and year. 
 
-```{r p4}
+```{r p4b}
 pander_anova(ym_lm)
 
 ```
 
-These results are based on the assumptions of the linear model being satisfied, which we see below, that is not the case. In the diagnostic plots in 4, we saw severe violations of the linearity assumption.   
+These results are based on the assumptions of the linear model being satisfied, which we see below, that is not the case. In the diagnostic plots in 4, we saw severe violations of the linearity assumption. We can see in the plots below, including a quadratic term for year drastically improves the trend in the residuals verses fitted values. There still is a trend in the residuals for the quadratic model.     
 
-```{r p3b, fig.cap="Residuals vs. time in models without and with quadratic terms"}
+```{r p4c}
 
 ltsm_lmq <- lm(value ~ poly(year, 2) + month, data = BRW_flask)
-par(mfrow=c(1,2))
 
-ggplot(ym_lm, aes(year, .resid)) + geom_point() + stat_smooth(method="loess") + xlab("Year") + ylab("Residuals") + ggtitle("Diagnostic for Linear Model") + theme_bw()
-
-ggplot(ltsm_lmq, aes(year, .resid)) + geom_point() + stat_smooth(method="loess") + xlab("Year") + ylab("Residuals") + ggtitle("Diagnostic for Quadratic Model") + theme_bw()
+step_lm <- MASS::stepAIC(ltsm_lmq, upper = ~ poly(year, 6) + month, direction = "both", trace = F)
+## chooses the quadratic model
 
 
-#plot(residuals(ltsm_lm) ~ year, data = BRW_flask)
-#plot(residuals(ltsm_lmq) ~ year, data = BRW_flask)
+p1 <- ggplot(ym_lm, aes(year, .resid)) + geom_point() + stat_smooth(method="loess") + xlab("Year") + ylab("Residuals") + ggtitle("Diagnostic for \nLinear Model") + theme_bw()
 
-par(mfrow=c(1,1))
+p2 <- ggplot(ltsm_lmq, aes(BRW_flask$year, .resid)) + geom_point() + stat_smooth(method="loess") + xlab("Year") + ylab("Residuals") + ggtitle("Diagnostic for \nQuadratic Model") + theme_bw()
 
+grid.arrange(p1, p2, ncol = 2, nrow = 1)
 ```
 
 ##5. For your model, plot the original time series and the model fitted values, both versus time on the same plot. You might consider two line types or colors for the two lines. The easiest way to obtain fitted values in R is using fitted(modelname). Discuss how it appears your model does or does not describe the responses using this plot.
 
 ```{r p5}
+par(mfrow = c(1, 1))
+
 colors <- c("#FF0000DD", "#000000DD")
 plot(value ~ year, data=BRW_flask, type="l", lty=1, lwd=2, col=colors[1], ylab=expression(paste(CO[2], "(",mu,"mol/mol)")))
-lines(fitted(ltsm_lm) ~ BRW_flask$year, lty=1, col=colors[2], lwd=2)
-legend(x=min(BRW_flask$year), y=max(BRW_flask$value), lty=c(1,1), lwd=c(2,2), col=colors, legend=c("Original","Fitted"),
+lines(fitted(ym_lm) ~ BRW_flask$year, lty=1, col=colors[2], lwd=2)
+
+legend(x=min(BRW_flask$year)-4, y=max(BRW_flask$value)+10, lty=c(1,1), lwd=c(2,2), col=c(colors[2], colors[1]), legend=c("Fitted \n(linear)", "Original"),
        bty = "n")
 
 ```
 
 ```{r p5a}
 
-plot(value ~ year, data=BRW_flask, type="l", lty=1, lwd=2, col=colors[1], ylab=expression(paste(CO[2], "(",mu,"mol/mol)")))
+plot(value ~ year, data=BRW_flask, type="l", lty=1, lwd=2, col=colors[1], ylab=expression(paste(CO[2], "(",mu,"mol/mol)")), xlim = c(1970, 2017))
 lines(fitted(ltsm_lmq) ~ BRW_flask$year, lty=1, col=colors[2], lwd=2)
-legend(x=min(BRW_flask$year), y=max(BRW_flask$value), lty=c(1,1), lwd=c(2,2), col=colors, legend=c("Original","Fitted (quadratic)"),
+
+legend(x=min(BRW_flask$year) - 4, y=max(BRW_flask$value)+10, lty=c(1,1), lwd=c(2,2), col=c(colors[2], colors[1]), legend=c("Fitted \n(quadratic)", "Original"),
        bty = "n")
+
 ```
 
-In the plot above, we see that the model with only a linear predictor for year and a seasonal adjustment does not capture the troughs of these data. The fitted values from the model do capture the peaks of these data quite well, only overestimating a bit in the years near 1995. 
+In the plots above, we see that the model with only a linear predictor for year and a monthly adjustment to the mean $CO_2$ concentration does not capture the peaks or troughs of these data very well. The fitted values from the quadratic model overall, fit these data better, only under-predicting the $CO_2$ values near 1990. 
 
 ##6. Document your R version 
 
@@ -201,41 +205,50 @@ getRversion()
 
 ## R Code Appendix:
 
-Setup:
-```{r sup, ref.label='setup', eval=F, tidy=TRUE}
+\textbf{Setup:}
+```{r sup, ref.label='setup', eval=F, tidy=TRUE, echo = TRUE}
 
 ```
 
-Problem 1:
-```{r a1, ref.label='p1', eval=F}
+\textbf{Problem 1:}
+```{r a1, ref.label='p1', eval=F, echo = TRUE}
 
 ```
 
-Problem 2:
-```{r a2, ref.label='p2', eval=F}
+\textbf{Problem 2:}
+```{r a2, ref.label='p2', eval=F, echo = TRUE}
 
 ```
 
-Problem 3:
-```{r a3, ref.label='p3', eval=F}
+\textbf{Problem 3:}
+```{r a3a, ref.label='p3a', eval=F, echo = TRUE}
 
 ```
 
-```{r a3a, ref.label='p3a', eval=F}
+```{r a3b, ref.label='p3b', eval=F, echo = TRUE}
+
+```
+\newpage
+
+\textbf{Problem 4:}
+```{r a4a, ref.label='p4a', eval=F, echo = TRUE}
 
 ```
 
-```{r a3b, ref.label='p3b', eval=F}
+```{r a4b, ref.label='p4b', eval=F, echo = TRUE}
 
 ```
 
-Problem 4:
-```{r a4, ref.label='p4', eval=F}
+```{r a4, ref.label='p4c', eval=F, echo = TRUE}
 
 ```
 
-Problem 5:
-```{r a5, ref.label='p5', eval=F}
+\textbf{Problem 5:}
+```{r a5, ref.label='p5', eval=F, echo = TRUE}
+
+```
+
+```{r a5a, ref.label='p5a', eval=F, echo = TRUE}
 
 ```
 
